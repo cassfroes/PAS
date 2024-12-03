@@ -1,0 +1,614 @@
+
+
+{                   COBRAS                   }
+{    by Cassiano Lustosa Froes - UFRJ 1993   }
+{         requer Monitor Super - VGA         }
+
+program cobras;
+uses graph,crt,dos;
+var numfase,tamanho,incrementax,incrementay:integer;
+    vidas,velocidade:integer;
+    x,y,contador,posicaox,posicaoy:integer;
+    corpo1,corpo:array [1..500] of array[1..2] of integer;
+    fim,bateu:boolean;
+
+    tamanho1:integer;
+    x1,y1,incrementax1,incrementay1,contador1:integer;
+    plr2:boolean;
+    numbolas:integer;
+
+
+{$I svga256.inc}
+
+procedure Inicia_SVGA;
+var
+  AutoDetect : pointer;
+  erro, GraphMode, GraphDriver, x : integer;
+
+{$F+}					(* Forca chamadas longas *)
+function DetectVGA : Integer;
+var Vid : Integer;
+begin
+   VID  := 4;
+   clrscr;
+  DetectVGA := Vid;
+end;
+{$F-}
+
+begin
+  AutoDetect := @DetectVGA;
+  GraphDriver := InstallUserDriver('SVGA256',AutoDetect);
+  erro := graphresult;
+  if erro <> 0 then
+     begin
+          writeln ( 'Erro : ' , grapherrormsg ( erro ) );
+          readln;
+          halt;
+     end;
+  GraphDriver := Detect;
+  InitGraph(GraphDriver,GraphMode,'');
+  erro := graphresult;
+  if erro <> 0 then
+     begin
+          writeln ( 'Erro : ' , grapherrormsg ( erro ) );
+          readln;
+          halt;
+     end;
+end;
+
+
+Procedure beep(s,t:integer);
+begin
+     sound(s);delay(t);
+     nosound;
+end;
+
+Procedure faz_tela(apaga:boolean);
+var a,b:integer;
+begin
+     a:=0;setfillstyle(solidfill,0);
+     repeat
+           for b:=0 to 64 do
+           begin
+                if apaga=false then setfillstyle(solidfill,b div 2+a div 4);
+                bar(a*8,b*12,a*8+9,b*12+13);
+           end;
+     a:=a+1;
+     until a>=128;
+end;
+procedure altera_opcoes;
+var ch:char;
+    str:string;
+begin
+     setcolor(66);
+     outtextxy(600,320,'jogadores');
+     outtextxy(600,353,' 1           2');
+     outtextxy(600,400,'velocidade');
+     outtextxy(600,433,' +           -');
+     str:=' W           '+#24;
+     outtextxy(630,500,str);
+     str:=' A   S       '+#27+'   '+#26;
+     outtextxy(600,530,str);
+     str:=' Z           '+#25;
+     outtextxy(630,560,str);
+     outtextxy(600,590,'jogador 1   jogador 2');
+     outtextxy(600,620,'<enter>  inicia o jogo');
+     outtextxy(600,650,'< Esc > Sai para o DOS');
+     setfillstyle(solidfill,66);
+     bar(600,420,844,430);
+     bar(600,340,844,350);
+     repeat
+      setfillstyle(solidfill,98);
+      bar(600+velocidade*3,420,600+velocidade*3+4,430);
+      if plr2=true then bar(830,340,800,350)
+                   else bar(610,340,640,350);
+      ch:=readkey;
+
+      if ord(ch)<>13 then begin
+      setfillstyle(solidfill,66);bar(600+velocidade*3,420,
+                                    600+velocidade*3+4,430);
+                if plr2=true then bar(830,340,800,350)
+                   else bar(610,340,640,350);
+                         end;
+      case ch of
+          '+': begin
+                      velocidade:=velocidade-2;
+                      if velocidade<0 then velocidade:=80;
+                      end;
+          '-': begin
+                      velocidade:=velocidade+2;
+                      if velocidade>80 then velocidade:=0;
+                      end;
+          '1': plr2:=false;
+          '2': plr2:=true;
+
+          #27: begin
+                              closegraph;
+                              halt;   (**fim??**)
+                              end;
+       end;
+     until (ord(ch)=13);
+end;
+Procedure menu;
+var ch:char;
+    i:integer;
+    str:string[40];
+begin
+     faz_tela(false);
+     settextstyle(Triplexfont,horizdir,8);
+     settextjustify(lefttext,toptext);
+     setcolor(64);
+     for i:=1 to 5 do outtextxy(10+i,10+i,'C O B R A S');
+     setcolor(65);
+     outtextxy(16,16,'C O B R A S');
+     outtextxy(17,16,'C O B R A S');
+     outtextxy(18,16,'C O B R A S');
+     setcolor(66);settextstyle(defaultfont,horizdir,2);
+     str:=' copyright '+#184+' jul/1993';
+     outtextxy(0,110,str);
+     outtextxy(0,130,' by Cassiano Lustosa Fr¢es');
+     altera_opcoes;
+     if plr2=true then vidas:=7
+                  else vidas:=5;
+end;
+
+Procedure desenha(horiz,vert:integer);
+begin
+     fillellipse(horiz,vert,6,6);
+end;
+
+Procedure sorteia_ponto;
+var raio:integer;
+begin
+     numbolas:=numbolas+1;
+     if numbolas<11 then begin
+
+     randomize;
+       repeat
+           posicaox:=random(getmaxx-60)+30;
+           posicaoy:=random(getmaxy-100)+70;
+       until (getpixel(posicaox,posicaoy)=0) and
+         (getpixel(posicaox,posicaoy+6)=0) and
+         (getpixel(posicaox,posicaoy-6)=0) and
+         (getpixel(posicaox+6,posicaoy)=0) and
+         (getpixel(posicaox-6,posicaoy)=0);
+       setcolor(95);
+       for raio:=0 to 6 do circle(posicaox,posicaoy,raio);
+
+     end;
+end;
+
+
+Procedure glupt;
+begin
+     beep(200,50);beep(450,20);
+     beep(250,40);
+end;
+
+Procedure difcor(j,k:integer);
+var raio:integer;
+begin
+     if (getpixel(j,k)<>95) then
+     begin
+       bateu:=true;
+       setcolor(96);
+       for raio:=0 to 20 do begin
+                 circle(x,y,raio);sound(50+raio*2);delay(25);
+                 end;
+       setcolor(black);
+       for raio:=0 to 20 do begin
+                 circle(x,y,raio);sound(70+raio);delay(15);
+                 end;
+       nosound;
+       delay(500);
+     end
+     else begin
+           glupt;
+           setcolor(black);for raio:=0 to 6 do
+                                circle(posicaox,posicaoy,raio);
+           for raio:=tamanho to tamanho+49 do
+                                begin
+                                corpo[raio][1]:=corpo[tamanho][1];
+                                corpo[raio][2]:=corpo[tamanho][2];
+                                end;
+           sorteia_ponto;
+           tamanho:=tamanho+49;
+           setcolor(black);
+          end;
+
+
+end;
+Procedure difcor1(j,k:integer);
+var raio:integer;
+begin
+     if (getpixel(j,k)<>95) then
+     begin
+       bateu:=true;
+       setcolor(96);
+       for raio:=0 to 20 do begin
+                 circle(x1,y1,raio);sound(50+raio*2);delay(25);
+                 end;
+       setcolor(black);
+       for raio:=0 to 20 do begin
+                 circle(x1,y1,raio);sound(70+raio);delay(15);
+                 end;
+       nosound;
+       delay(500);
+     end
+     else begin
+           glupt;
+           setcolor(black);for raio:=0 to 6 do
+                                circle(posicaox,posicaoy,raio);
+           for raio:=tamanho1 to tamanho1+49 do
+                                begin
+                                corpo1[raio][1]:=corpo1[tamanho1][1];
+                                corpo1[raio][2]:=corpo1[tamanho1][2];
+                                end;
+           sorteia_ponto;
+           tamanho1:=tamanho1+49;
+           setcolor(black);
+          end;
+
+
+end;
+
+
+
+
+Procedure verifica_direcao;
+var ch:char;
+begin
+     if keypressed then begin
+                  ch:=readkey;ch:=upcase(ch);
+                  case ch of
+                  'O': NUMFASE:=NUMFASE+1;
+                  'W': if incrementay<>7 then begin
+                                     incrementay:=-7;
+                                     incrementax:=0;
+                                end;
+
+                  'A': if incrementax<>7 then begin
+                                    incrementax:=-7;
+                                    incrementay:=0;
+                                end;
+                  'S': if incrementax<>-7 then begin
+                                   incrementax:=7;
+                                   incrementay:=0;
+                               end;
+                  'Z': if incrementay<>-7 then begin
+                                   incrementay:=7;
+                                   incrementax:=0;
+                               end;
+                  'F': begin
+                       sound(100);delay(100);nosound;
+                       bateu:=true;
+                       vidas:=0;
+                       end;
+                  #0:if plr2=true then begin
+     ch:=readkey;
+     case (ord(ch)) of
+                   72: if incrementay1<>7 then begin
+                                     incrementay1:=-7;
+                                     incrementax1:=0;
+                                end;
+
+                  75: if incrementax1<>7 then begin
+                                    incrementax1:=-7;
+                                    incrementay1:=0;
+                                end;
+                  77: if incrementax1<>-7 then begin
+                                   incrementax1:=7;
+                                   incrementay1:=0;
+                               end;
+                  80: if incrementay1<>-7 then begin
+                                   incrementay1:=7;
+                                   incrementax1:=0;
+                               end;
+     end;
+end;
+                  end;
+     end;
+    x:=x+incrementax;
+    y:=y+incrementay;
+    if (getpixel(x,y)<>0) then difcor(x,y);
+    if (incrementay<>0) then
+       if (getpixel(x-6,y)<>0) then difcor(x-6,y)
+       else if (getpixel(x+6,y)<>0) then difcor(x+6,y);
+    if (incrementax<>0) then
+       if (getpixel(x,y-6)<>0) then difcor(x,y-6)
+       else if (getpixel(x,y+6)<>0) then difcor(x,y+6);
+    if plr2=true then begin
+
+    x1:=x1+incrementax1;
+    y1:=y1+incrementay1;
+    if (getpixel(x1,y1)<>0) then difcor1(x1,y1);
+    if (incrementay1<>0) then
+       if (getpixel(x1-6,y1)<>0) then difcor1(x1-6,y1)
+       else if (getpixel(x1+6,y1)<>0) then difcor1(x1+6,y1);
+    if (incrementax1<>0) then
+       if (getpixel(x1,y1-6)<>0) then difcor1(x1,y1-6)
+       else if (getpixel(x1,y1+6)<>0) then difcor1(x1,y1+6);
+    end;
+end;
+
+Procedure moldura;
+var mold:integer;
+begin
+     faz_tela(true);
+     for mold:=0 to 30 do begin
+     setcolor(100+mold);
+     moveto(mold,mold+30);lineto(getmaxx-mold,mold+30);
+     lineto(getmaxx-mold,getmaxy-mold);lineto(mold,getmaxy-mold);
+     lineto(mold,mold+30);
+     end;
+end;
+
+
+
+
+procedure inicializa_corpo;
+var i:integer;
+begin
+     for i:=1 to tamanho do begin
+                                   corpo[i][1]:=x;
+                                   corpo[i][2]:=y;
+                                   end;
+     if plr2=true then
+            for i:=1 to tamanho1 do begin
+                                   corpo1[i][1]:=x1;
+                                   corpo1[i][2]:=y1;
+                                   end;
+end;
+
+procedure inicializa_variaveis;
+var i:integer;
+begin
+     inicializa_corpo;
+     for i:=0 to 29 do begin
+         setRGBpalette(100+i,i*2,i,60-i div 2);  (*moldura*)
+         setRGBpalette(131+i,0,i*2,60-i*2); (*barra fase 2*)
+         setRGBpalette(161+i,30,i,0); (*barra fase 5*)
+         end;
+     for i:=1 to 63 do setRGBpalette(i,0,0,i);  (*menu*)
+     setRGBpalette(99,63,63,0);   (*anel cobra1*)
+     setRGBpalette(98,63,0,0);    (*cabeca cobra1*)
+     setRGBpalette(97,25,30,20);  (*corpo cobra1*)
+      setRGBpalette(92,0,63,63);  (*cabeca cobra2*)
+      setRGBpalette(93,10,30,10); (*corpo cobra2*)
+      setRGBpalette(94,20,63,0); (*anel cobra2*)
+     setRGBpalette(96,40,20,20);  (*explosao*)
+     setRGBpalette(95,50,40,10);  (*ponto*)
+     setRGBpalette(64,25,25,25);
+     setRGBpalette(65,63,35,10);
+     setRGBpalette(66,45,45,45);
+end;
+
+
+Procedure tatatata;
+begin
+     beep(400,50);beep(0,50);beep(350,60);
+     beep(0,35);beep(400,60);
+     beep(0,10);
+     beep(390,70);beep(0,75);beep(390,250);
+end;
+
+
+Procedure mus_passou;
+begin
+     delay(500);
+     beep(500,300);
+     beep(450,150);beep(0,100);beep(490,190);beep(0,150);
+     beep(600,200);delay(1000);
+end;
+
+
+procedure repete_ate_espaco;
+var ch:char;
+begin
+     settextstyle(defaultfont,horizdir,2);
+     settextjustify(lefttext,toptext);
+           setcolor(99);
+           outtextxy(0,0,'Pressione <espa‡o> ...');
+           repeat
+              ch:=readkey
+           until ch=' ';
+           tatatata;
+           setcolor(0);
+           outtextxy(0,0,'Pressione <espa‡o> ...');
+           setcolor(95);
+           outtextxy(0,0,'<F> finaliza');
+end;
+
+
+
+Procedure fase(numfase:integer);
+var aux:integer;
+begin
+     moldura;
+     bateu:=false; x:=60;y:=100;
+     incrementax:=7;incrementay:=0;
+     tamanho:=10;numbolas:=0;
+     if plr2=true then begin
+                       x1:=964;y1:=680;
+                       incrementax1:=-7;incrementay1:=0;
+                       tamanho1:=10;
+                       end;
+     inicializa_corpo;
+     case numfase of
+     1:for aux:=0 to 29 do begin
+                           setcolor(100+aux);
+                           rectangle(512-aux,380-aux,512+aux,380+aux);
+                           end;
+     2:for aux:=0 to 29 do begin
+                           setcolor(131+aux);
+                           line(200,260+aux,600,260+aux);
+                           line(400,500-aux,800,500-aux);
+                           end;
+     3:for aux:=0 to 29 do begin
+                           setcolor(100+aux);
+                           line(31,250+aux,700,250+aux);
+                           line(993,550-aux,300,550-aux);
+                           end;
+     4:for aux:=0 to 29 do begin
+                           setcolor(131+aux);
+                           line(31,380+aux,380,380+aux);
+                           line(992,380-aux,654,380-aux);
+                           line(512+aux,62,512+aux,280);
+                           line(512-aux,736,512-aux,480);
+                           end;
+     5:for aux:=0 to 29 do begin
+                           setcolor(161+aux);
+                           line(50+aux,736,400+aux,300);
+                           line(974-aux,736,624-aux,300);
+                           line(584+aux,460+aux,440-aux,460+aux);
+                           circle(200,200,aux);
+                           circle(824,200,aux);
+                           end;
+     6:for aux:=0 to 29 do begin
+                           setcolor(161+aux);
+                           line(200,200+aux,724-aux,200+aux);
+                           line(724-aux,200+aux,724-aux,500-aux);
+                           line(300-aux,300,300-aux,600+aux);
+                           line(300-aux,600+aux,800,600+aux);
+                           line(400+aux,300,400+aux,500-aux);
+                           line(400+aux,500-aux,724-aux,500-aux);
+                           rectangle(125-aux,350-aux,125+aux,600+aux);
+                           rectangle(849-aux,200-aux,849+aux,500+aux);
+                           end;
+     7:begin  for aux:=0 to 29 do begin
+                           setcolor(161+aux);
+                           rectangle(150-aux,200-aux,874+aux,650);
+                           rectangle(300-aux,300-aux,724+aux,625);
+                           rectangle(440-aux,400-aux,574+aux,600);
+                           rectangle(507-aux,500-aux,507+aux,500+aux);
+                           rectangle(507-aux,115-aux,507+aux,115+aux);
+                           end;
+                           setcolor(0);
+                           line(120,650,904,650);
+                           line(270,625,754,625);
+                           line(410,600,604,600);
+                           end;
+     8:for aux:=0 to 29 do begin
+                           setcolor(131+aux);
+                           moveto(80,200);lineto(90+aux,170+aux);
+                           lineto(600,150-aux);lineto(850+aux,300+aux);
+                           lineto(700-aux,400-aux);lineto(100,300+aux);
+                           lineto(340+aux,500);lineto(500,500-aux);
+                           lineto(520,485);moveto(160,500);
+                           lineto(170-aux,520);lineto(380+aux,650);
+                           lineto(900,650-aux);
+                           lineto(600,300-aux);lineto(570,285);
+                           end;
+     9:for aux:=0 to 29 do begin
+                           setcolor(161+aux);
+                           moveto(30+aux,738);lineto(900+aux,200);
+                           lineto(800+aux,700);lineto(520,550+aux);
+                           lineto(750+aux,400);lineto(750+aux,500);
+                           rectangle(420-aux,630-aux,420+aux,630+aux);
+                           moveto(800+aux,60);lineto(400+aux,300);
+                           lineto(300+aux,100);lineto(200+aux,500);
+                           lineto(100+aux,150);
+                           line(300+aux,450,400+aux,400);
+                           line(400+aux,400,320+aux,300);
+                           end;
+
+
+     end;
+     setfillstyle(solidfill,98);
+     desenha(x,y);
+       if plr2=true then begin
+                         setfillstyle(solidfill,92);
+                         desenha(x1,y1);
+                         end;
+     repete_ate_espaco;
+     setfillstyle(solidfill,0);setcolor(0);
+     desenha(x,y);
+       if plr2=true then desenha(x1,y1);
+     setfillstyle(1,95);
+     setcolor(95);
+     outtextxy(512,0,'vidas :     ');
+     for aux:=1 to vidas do bar(630+aux*10,3,630+aux*10+5,15);
+end;
+
+Procedure fim_de_jogo;
+var carac:char;
+begin
+     setcolor(92);
+     setfillstyle(8,98);
+     bar3d(412,280,612,480,4,true);
+     setcolor(99);
+     settextstyle(triplexfont,horizdir,6);
+     settextjustify(centertext,centertext);
+     outtextxy(512,310,'fim');
+     outtextxy(512,370,'de');
+     outtextxy(512,430,'jogo');
+     repeat until keypressed;
+     carac:=readkey;
+end;
+
+Procedure Principal;
+BEGIN
+     inicializa_variaveis;
+     menu;
+    (***** abrir um loop,p/ fases ******)
+    numfase:=1;
+    repeat
+    fase(numfase);
+    begin
+     sorteia_ponto;
+     contador:=tamanho;
+     contador1:=tamanho1;
+     setcolor(0);
+     verifica_direcao;
+     repeat
+           setfillstyle(solidfill,98);desenha(x,y);
+           if plr2=true then delay(velocidade*2 div 2)
+                        else delay(velocidade*2);
+           setcolor(99);
+           setfillstyle(solidfill,97);desenha(x,y);
+           setcolor(0);
+           setfillstyle(solidfill,0);
+           desenha(corpo[contador][1],corpo[contador][2]);
+           corpo[contador][1]:=x;corpo[contador][2]:=y;
+           contador:=contador-1;
+           if contador=0 then contador:=tamanho;
+
+           if plr2=true then begin
+
+           setfillstyle(solidfill,92);desenha(x1,y1);delay(velocidade div 2);
+           setcolor(94);
+           setfillstyle(solidfill,93);desenha(x1,y1);
+           setcolor(0);
+           setfillstyle(solidfill,0);
+           desenha(corpo1[contador1][1],corpo1[contador1][2]);
+           corpo1[contador1][1]:=x1;corpo1[contador1][2]:=y1;
+           contador1:=contador1-1;
+           if contador1=0 then contador1:=tamanho1;
+
+           end;
+
+           verifica_direcao;
+     until (bateu=true) or (numbolas=11);
+     if numbolas=11 then begin
+                    mus_passou;
+                    numfase:=numfase+1;
+                    if (numfase mod 2=0) then vidas:=vidas+1;
+                    if numfase=11 then numfase:=1;
+                    end;
+     if bateu=true then vidas:=vidas-1;
+    end;
+    until vidas=-1;
+    fim_de_jogo;
+END;
+
+BEGIN
+     Inicia_SVGA;
+     velocidade:=10;plr2:=false;
+     repeat
+     Principal
+     until fim=true;
+END.
+
+
+
+

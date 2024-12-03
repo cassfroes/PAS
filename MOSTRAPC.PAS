@@ -1,0 +1,41 @@
+program teste;
+uses graph,pcx,crt;
+
+
+Procedure Inicializa_grafico;
+var dr,mo:integer;
+begin
+     dr:=cga;mo:=4;
+     InitGraph(dr,mo,'');
+end;
+
+procedure beep(s,t:integer);
+begin
+     sound(s);
+     delay(t);
+     nosound;
+end;
+Procedure desenhatela;
+var i:integer;
+begin
+{     setfillstyle(solidfill,255);
+     bar(0,0,getmaxx,getmaxy);}
+
+
+
+     LePCX('d:\cassiano\cep\cepcga2',0,0);
+
+    repeat until keypressed;
+     readkey;
+     beep(100,30);
+     beep(500,20);
+end;
+
+
+Begin
+     Inicializa_Grafico;
+     desenhatela;
+{     readln;}
+     CloseGraph;
+     {FimGrafico;}
+end.

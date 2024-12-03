@@ -1,0 +1,47 @@
+unit Leimg1;
+
+interface
+
+uses
+  SysUtils, WinTypes, WinProcs, Messages, Classes, Graphics, Controls,
+  Forms, Dialogs, FileCtrl, StdCtrls, ExtCtrls;
+
+type
+  TForm1 = class(TForm)
+    Image1: TImage;
+    DriveComboBox1: TDriveComboBox;
+    DirectoryListBox1: TDirectoryListBox;
+    FileListBox1: TFileListBox;
+    procedure DriveComboBox1Change(Sender: TObject);
+    procedure DirectoryListBox1Change(Sender: TObject);
+    procedure FileListBox1Change(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.DFM}
+
+procedure TForm1.DriveComboBox1Change(Sender: TObject);
+begin
+      DirectoryListBox1.Drive:=DriveComboBox1.Drive;
+end;
+
+procedure TForm1.DirectoryListBox1Change(Sender: TObject);
+begin
+     FileListBox1.Directory:=DirectoryListBox1.Directory;
+end;
+
+procedure TForm1.FileListBox1Change(Sender: TObject);
+begin
+     If FileListBox1.FileName<>'' then
+      Image1.Picture.LoadFromFile(FileListBox1.FileName);
+end;
+
+end.
