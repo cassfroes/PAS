@@ -3,7 +3,7 @@ Program CalcNum;
 Uses
 	Crt, Dos;
 
-type
+type  
     tipo_mat = array[1..4,1..4] of real;
 var
    abd : tipo_mat;
