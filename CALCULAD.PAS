@@ -1,5 +1,5 @@
             (*    programa calculadora   *)
-            (*   Cassiano Lustosa Fr¢es  *)
+            (*   Cassiano Lustosa Froes  *)
 
 program calculadora;
 uses graph;
